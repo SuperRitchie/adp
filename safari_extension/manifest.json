@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Shift Schedule to iCalendar",
+  "version": "1.0.0",
+  "description": "Extracts shift information from the My Schedule page and exports it as an .ics file for import into calendar applications.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Export shifts",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*/wfd/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*/wfd/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

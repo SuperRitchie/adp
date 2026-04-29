@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Export shifts</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 1rem;
+      width: 200px;
+    }
+    button {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #a5b4fc;
+    }
+    #status {
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <button id="exportButton">Export Shifts to .ics</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
