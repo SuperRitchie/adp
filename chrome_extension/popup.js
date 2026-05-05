@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // query the active tab to determine whether the user is on the schedule page. we
       // only attempt to contact the content script if the url contains the expected
       // path segment ("/wfd/"). otherwise, we display a helpful message and
-      // re‑enable the export button.
+      // re‑enable the export button
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         const tab = tabs[0];
         if (!tab) {
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
           exportButton.disabled = false;
           return;
         }
-        // basic check for the schedule page; adjust the regex if your schedule url differs.
+        // basic check for the schedule page; adjust the regex if your schedule url differs
         const url = tab.url || '';
         if (!/\/wfd\//.test(url)) {
           const msg = 'Please navigate to your schedule page before exporting.';
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         statusDiv.textContent = 'Collecting shifts…';
-        // send a message to the content script to initiate shift collection.
+        // send a message to the content script to initiate shift collection
         chrome.tabs.sendMessage(tab.id, { action: 'collectShifts' }, function (response) {
           if (chrome.runtime.lastError) {
             console.error(chrome.runtime.lastError);
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             exportButton.disabled = false;
             return;
           }
-          // the content script has already initiated download of the .ics file.
+          // the content script has already initiated download of the .ics file
           const successMsg = 'File generated. Check your downloads.';
           statusDiv.textContent = successMsg;
           if (chrome.notifications) {

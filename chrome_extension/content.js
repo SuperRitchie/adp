@@ -1,12 +1,12 @@
-// content script for the shift schedule to icalendar extension.
+// content script for the shift schedule to icalendar extension
 // this script runs on pages matching the configured url pattern (the my schedule page)
 // and listens for messages from the popup. when triggered, it gathers all shift
 // information available in the dom, constructs an icalendar (.ics) file, and
 // initiates a download for the user. it sends back a success or error message
-// to the popup for ui feedback.
+// to the popup for ui feedback
 
 // helper to escape special characters in icalendar text fields. this function
-// escapes backslashes, commas, semicolons and newlines according to rfc 5545.
+// escapes backslashes, commas, semicolons and newlines according to rfc 5545
 function escapeICalText(str) {
   return String(str)
     .replace(/\\/g, '\\\\')
@@ -15,7 +15,7 @@ function escapeICalText(str) {
     .replace(/;/g, '\\;');
 }
 
-// convert a human-friendly time string (e.g., "9:00 am") into hhmmss format.
+// convert a human-friendly time string (e.g., "9:00 am") into hhmmss format
 function convertTo24Hour(timeStr) {
   const [time, modifier] = timeStr.trim().split(/\s+/);
   let [hours, minutes] = time.split(':').map(Number);
@@ -30,10 +30,10 @@ function convertTo24Hour(timeStr) {
 
 // create a unique uid for each event. adp calendar uses a 24‑character
 // hexadecimal identifier followed by '@adp-html-to-ics'. we generate 12
-// random bytes and convert them to a 24‑digit hex string.
+// random bytes and convert them to a 24‑digit hex string
 function generateUID() {
   let hex = '';
-  // use webcrypto if available; otherwise fall back to math.random().
+  // use webcrypto if available; otherwise fall back to math.random()
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     const array = new Uint8Array(12);
     crypto.getRandomValues(array);
@@ -48,8 +48,8 @@ function generateUID() {
   return `${hex}@adp-html-to-ics`;
 }
 
-// compute the duration in hours between two times (e.g., "9:00 am", "3:00 pm").
-// returns a floating point number with two decimals (e.g., 6.00, 6.25).
+// compute the duration in hours between two times (e.g., "9:00 am", "3:00 pm")
+// returns a floating point number with two decimals (e.g., 6.00, 6.25)
 function computeDurationHours(startTimeStr, endTimeStr) {
   const parse = (t) => {
     const [time, ampm] = t.trim().split(/\s+/);
@@ -69,8 +69,8 @@ function computeDurationHours(startTimeStr, endTimeStr) {
   return Math.round(hours * 100) / 100;
 }
 
-// fold a long icalendar property line to rfc 5545's recommended 75 octets per line.
-// it prepends a space to continuation lines.
+// fold a long icalendar property line to rfc 5545's recommended 75 octets per line
+// it prepends a space to continuation lines
 function foldLine(name, value) {
   let line = `${name}:${value}`;
   const lines = [];
@@ -89,20 +89,20 @@ function foldLine(name, value) {
 // as a single event, preserving the original behaviour. note that this function
 // assumes that opening a shift will reveal its segment details in the dom; if the
 // page structure changes and segments are not present in the dom until another
-// interaction occurs, this logic may need to be updated.
+// interaction occurs, this logic may need to be updated
 async function collectShifts() {
   const events = [];
   const timeElements = Array.from(document.querySelectorAll('time.label'));
   for (let i = 0; i < timeElements.length; i++) {
     const timeEl = timeElements[i];
-    // determine the date associated with this shift by locating the nearest day <li>.
+    // determine the date associated with this shift by locating the nearest day <li>
     const dayLi = timeEl.closest('li[id^="myschedule-day_"]');
     if (!dayLi) continue;
     const dayId = dayLi.getAttribute('id');
     const datePart = dayId ? dayId.split('_')[1] : null;
     if (!datePart) continue;
 
-    // extract top level time range for fallback. remove bracketed duration (e.g., "[6.25]").
+    // extract top level time range for fallback. remove bracketed duration (e.g., "[6.25]")
     let baseTimeText = timeEl.getAttribute('aria-label') || timeEl.textContent || '';
     baseTimeText = baseTimeText.replace(/\s*\[.*?\]\s*/g, '').trim();
     const baseRangeParts = baseTimeText.split('-');
@@ -112,31 +112,31 @@ async function collectShifts() {
     // attempt to open the shift detail panel by clicking the time element. some
     // implementations bind the click to the parent container rather than the time
     // element itself; however, dispatching a click on the time element typically
-    // triggers the correct action.
+    // triggers the correct action
     try {
       timeEl.click();
     } catch (err) {
-      // Ignore errors; if click fails, segments will not be collected and fallback will run.
+      // Ignore errors; if click fails, segments will not be collected and fallback will run
     }
 
     // wait a short moment for the detailed panel to render. adjust this delay if
-    // the page takes longer to respond on slower networks or devices.
+    // the page takes longer to respond on slower networks or devices
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     // collect any segment rows from the detailed shift panel. when a shift is
     // opened, ukg/adp renders a list of <li> elements with an automation id
     // starting with "myschedule-detailed-shift-segment-". each contains a
     // <time class="props"> element with the segment time range and a
-    // <p class="primary-orgpath"> with the org path (or "break" for breaks).
+    // <p class="primary-orgpath"> with the org path (or "break" for breaks)
     const segmentListItems = document.querySelectorAll(
       'ng-myschedule-detailed-shift-segments li.info'
     );
     if (segmentListItems && segmentListItems.length > 0) {
       // if detailed segment data is available, consolidate all segments into a single
-      // calendar event. the summary is derived from the first segment's org path.
+      // calendar event. the summary is derived from the first segment's org path
       // the event's start time is the start of the first segment, and the end time
       // is the end of the last segment. the description contains a total hours
-      // line and a line for each segment detailing its range and org path.
+      // line and a line for each segment detailing its range and org path
       const segments = [];
       segmentListItems.forEach((seg) => {
         const segTimeEl = seg.querySelector('time.props');
@@ -153,7 +153,7 @@ async function collectShifts() {
         segments.push({ start: segStart, end: segEnd, locPath });
       });
       if (segments.length > 0) {
-        // Determine overall start and end times from the first and last segments.
+        // Determine overall start and end times from the first and last segments
         const firstSeg = segments[0];
         const lastSeg = segments[segments.length - 1];
         const start24 = convertTo24Hour(firstSeg.start);
@@ -211,13 +211,13 @@ async function collectShifts() {
         });
       }
     } else {
-      // if no segment details were found, treat the entire time range as a single shift.
+      // if no segment details were found, treat the entire time range as a single shift
       if (!baseStart || !baseEnd) continue;
       const baseStart24 = convertTo24Hour(baseStart);
       const baseEnd24 = convertTo24Hour(baseEnd);
       const dtStart = `${datePart.replace(/-/g, '')}T${baseStart24}`;
       const dtEnd = `${datePart.replace(/-/g, '')}T${baseEnd24}`;
-      // determine location from the shift container as before.
+      // determine location from the shift container as before
       let locPath = '';
       let container = timeEl.closest('.shift-wrapper');
       if (!container) {
@@ -259,42 +259,42 @@ async function collectShifts() {
     }
     // attempt to close the detailed panel. the drawer can often be dismissed
     // by sending an escape key event. if that fails, ignore the error and
-    // continue with the next shift.
+    // continue with the next shift
     try {
       const escEvent = new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true });
       document.dispatchEvent(escEvent);
     } catch (err) {
-      // Silently ignore any errors dispatching the key event.
+      // Silently ignore any errors dispatching the key event
     }
-    // Allow time for the drawer to close before processing the next shift.
+    // Allow time for the drawer to close before processing the next shift
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   return events;
 }
 
-// Listener for messages from the extension.
+// Listener for messages from the extension
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'collectShifts') {
     // wrap in an async iife to allow awaiting dom interactions while still
-    // returning true immediately to keep the message channel open.
+    // returning true immediately to keep the message channel open
     (async () => {
       try {
         // gather current visible shifts first. since collectShifts returns a promise,
-        // await it to retrieve the events array.
+        // await it to retrieve the events array
         let events = await collectShifts();
 
-        // attempt to load future days by clicking the "load-more-future-days" button if present.
+        // attempt to load future days by clicking the "load-more-future-days" button if present
         const loadMoreBtn = document.querySelector(
           'ukg-button[automation-id="load-more-future-days"], button[automation-id="load-more-future-days"]'
         );
         if (loadMoreBtn) {
           loadMoreBtn.click();
-          // wait briefly to allow the dom to update with future days. adjust the delay if necessary.
+          // wait briefly to allow the dom to update with future days. adjust the delay if necessary
           await new Promise((resolve) => setTimeout(resolve, 1500));
-          // collect shifts again now that additional days may be visible.
+          // collect shifts again now that additional days may be visible
           const moreEvents = await collectShifts();
           // merge without duplicates (based on start and end times and summary). pre-populate
-          // the set with keys from the events already collected.
+          // the set with keys from the events already collected
           const seen = new Set(events.map((ev) => `${ev.dtStart}|${ev.dtEnd}|${ev.summary}`));
           moreEvents.forEach((ev) => {
             const key = `${ev.dtStart}|${ev.dtEnd}|${ev.summary}`;
