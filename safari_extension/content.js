@@ -82,6 +82,27 @@ function foldLine(name, value) {
   return lines.join("\r\n") + "\r\n";
 }
 
+
+function buildShiftReminderAlarms() {
+  const reminders = [
+    { trigger: "-PT1H", description: "shift starts in 1 hour" },
+    { trigger: "-PT3H", description: "shift starts in 3 hours" },
+    { trigger: "-P1D", description: "shift starts in 1 day" },
+  ];
+
+  return reminders
+    .map((reminder) => {
+      let alarm = "";
+      alarm += "BEGIN:VALARM\r\n";
+      alarm += "ACTION:DISPLAY\r\n";
+      alarm += `TRIGGER:${reminder.trigger}\r\n`;
+      alarm += foldLine("DESCRIPTION", escapeICalText(reminder.description));
+      alarm += "END:VALARM\r\n";
+      return alarm;
+    })
+    .join("");
+}
+
 // asynchronously collect all shifts and their segments. this function will iterate through
 // each visible shift on the page, open its details panel if available, parse any
 // sub‑segments within the detailed view, and assemble one event per shift. if
@@ -338,6 +359,7 @@ if (extApi && extApi.runtime && extApi.runtime.onMessage) {
             if (ev.description) {
               ics += foldLine('DESCRIPTION', escapeICalText(ev.description));
             }
+            ics += buildShiftReminderAlarms();
             ics += 'END:VEVENT\r\n';
           });
           ics += 'END:VCALENDAR\r\n';
